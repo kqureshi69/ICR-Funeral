@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grave Inventory</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>⚰️ Grave Inventory</h1>
+    <div class="stats" id="stats"><!-- filled by JS --></div>
+  </header>
+
+  <main class="layout">
+    <!-- Sidebar: sections -->
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <div class="tabs">
+          <button class="tab active" data-tab="sections">Sections</button>
+          <button class="tab" data-tab="owners">Owners</button>
+        </div>
+        <button class="btn small" id="addSectionBtn">+ Add</button>
+        <button class="btn small" id="addOwnerBtn" hidden>+ Add</button>
+      </div>
+      <ul class="section-list" id="sectionList"></ul>
+      <ul class="section-list" id="ownerList" hidden></ul>
+    </aside>
+
+    <!-- Main: graves -->
+    <section class="content">
+      <div class="toolbar" id="toolbar">
+        <input type="search" id="searchInput" placeholder="Search plot #, owner, grave or deed id…" />
+        <select id="statusFilter">
+          <option value="">All statuses</option>
+          <option value="available">Available</option>
+          <option value="reserved">Reserved</option>
+          <option value="occupied">Occupied</option>
+        </select>
+        <span class="spacer"></span>
+        <button class="btn primary" id="addGraveBtn">+ Add Grave</button>
+      </div>
+
+      <table class="grave-table" id="graveTable">
+        <thead>
+          <tr>
+            <th>Section</th>
+            <th>Plot #</th>
+            <th>Status</th>
+            <th>Owner</th>
+            <th>Contact</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="graveBody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState" hidden><!-- filled by JS --></div>
+    </section>
+  </main>
+
+  <!-- Grave create/edit modal -->
+  <div class="modal-backdrop" id="graveModal" hidden>
+    <div class="modal form-wide">
+      <h3 id="graveModalTitle">Add Grave</h3>
+      <form id="graveForm">
+        <input type="hidden" id="graveId" />
+        <label>Section
+          <select id="graveSection" required></select>
+        </label>
+        <label>Plot number
+          <input type="text" id="gravePlot" required />
+        </label>
+        <label>Status
+          <select id="graveStatus">
+            <option value="available">Available</option>
+            <option value="reserved">Reserved</option>
+            <option value="occupied">Occupied</option>
+          </select>
+        </label>
+        <label>Owner name
+          <input type="text" id="graveOwner" />
+        </label>
+        <label>Owner contact
+          <input type="text" id="graveContact" />
+        </label>
+        <div class="field-row">
+          <label>Grave id
+            <input type="text" id="graveRef" placeholder="e.g. GRV-00412" />
+          </label>
+          <label>Deed id
+            <input type="text" id="graveDeed" placeholder="e.g. DEED-77" />
+          </label>
+        </div>
+        <label>Date purchased
+          <input type="date" id="gravePurchased" />
+        </label>
+        <label>Notes
+          <textarea id="graveNotes" rows="6"></textarea>
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn" data-close>Cancel</button>
+          <button type="submit" class="btn primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Section modal -->
+  <div class="modal-backdrop" id="sectionModal" hidden>
+    <div class="modal">
+      <h3 id="sectionModalTitle">Add Section</h3>
+      <form id="sectionForm">
+        <input type="hidden" id="sectionId" />
+        <label>Code
+          <input type="text" id="sectionCode" required placeholder="e.g. A" />
+        </label>
+        <label>Name
+          <input type="text" id="sectionName" required placeholder="Garden of Peace" />
+        </label>
+        <label>Description
+          <textarea id="sectionDesc" rows="2"></textarea>
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn" data-close>Cancel</button>
+          <button type="submit" class="btn primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Grave detail / burials drawer -->
+  <div class="modal-backdrop" id="detailModal" hidden>
+    <div class="modal wide">
+      <h3 id="detailTitle">Grave detail</h3>
+      <div id="detailMeta" class="detail-meta"></div>
+
+      <h4>Burials</h4>
+      <table class="burial-table">
+        <thead>
+          <tr><th>Deceased</th><th>Died</th><th>Buried</th><th>Notes</th><th></th></tr>
+        </thead>
+        <tbody id="burialBody"></tbody>
+      </table>
+
+      <form id="burialForm" class="burial-form">
+        <input type="hidden" id="burialGraveId" />
+        <input type="text" id="burialName" placeholder="Deceased name" required />
+        <input type="date" id="burialDeath" title="Date of death" />
+        <input type="date" id="burialBurial" title="Date of burial" />
+        <input type="text" id="burialNotes" placeholder="Notes" />
+        <button type="submit" class="btn primary">Add burial</button>
+      </form>
+
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Documents modal (shared by sections, graves and burials) -->
+  <div class="modal-backdrop" id="documentsModal" hidden>
+    <div class="modal wide">
+      <h3 id="documentsTitle">Documents</h3>
+      <div class="doc-toolbar">
+        <button type="button" class="btn primary" id="uploadDocBtn">+ Upload documents</button>
+        <span class="doc-hint">PDF, image, Word or text &mdash; up to 25 MB each</span>
+      </div>
+      <table class="doc-table">
+        <thead>
+          <tr><th>Document</th><th>Size</th><th>Added</th><th></th></tr>
+        </thead>
+        <tbody id="documentBody"></tbody>
+      </table>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="ownerModal" hidden>
+    <div class="modal">
+      <h3 id="ownerModalTitle">Add Owner</h3>
+      <form id="ownerForm">
+        <input type="hidden" id="ownerId" />
+        <label>Name
+          <input type="text" id="ownerName" required placeholder="e.g. Aftab Dar" />
+        </label>
+        <label>Contact
+          <input type="text" id="ownerContact" placeholder="phone or email" />
+        </label>
+        <label>Address
+          <input type="text" id="ownerAddress" />
+        </label>
+        <label>Notes
+          <textarea id="ownerNotes" rows="4"></textarea>
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn danger" id="deleteOwnerBtn" hidden>Delete</button>
+          <span class="spacer"></span>
+          <button type="button" class="btn" data-close>Cancel</button>
+          <button type="submit" class="btn primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="js/util.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/sections.js"></script>
+  <script src="js/owners.js"></script>
+  <script src="js/graves.js"></script>
+  <script src="js/documents.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
